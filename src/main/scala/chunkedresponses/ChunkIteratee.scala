@@ -27,7 +27,8 @@ class ChunkIteratee(chunkedResponder: ActorRef) extends Iteratee[HttpData, Unit]
 
   private def waitForAck(future: Future[Any]):Iteratee[HttpData, Unit] = new Iteratee[HttpData, Unit] {
     def fold[B](folder: Step[HttpData, Unit] => Future[B])(implicit ec: ExecutionContext): Future[B] = {
-      future.flatMap(_ => folder(Step.Cont(step)))
+      val folderResult = folder(Step.Cont(step))
+      future.flatMap(_ => folderResult)
     }
   }
 }
