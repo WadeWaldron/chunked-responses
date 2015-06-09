@@ -14,6 +14,7 @@ object Projects extends Build {
 
 
   val root = Project("ChunkedResponses",file("."), settings = Defaults.defaultSettings ++ Seq(
+    resolvers += "Typesafe repository releases" at "http://repo.typesafe.com/typesafe/releases/",
 	  scalaVersion := Versions.scala,
     libraryDependencies ++= Seq(
       "com.typesafe.akka" %% "akka-actor" % Versions.akka,

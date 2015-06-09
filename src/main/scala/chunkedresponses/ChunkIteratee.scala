@@ -13,22 +13,17 @@ class ChunkIteratee(chunkedResponder: ActorRef) extends Iteratee[HttpData, Unit]
   import ChunkedResponder._
   private implicit val timeout = Timeout(30.seconds)
 
-  private def step(input: Input[HttpData]):Iteratee[HttpData, Unit] = input match {
-    case Input.El(e) => waitForAck(chunkedResponder ? Chunk(e))
-    case Input.Empty => waitForAck(Future.successful(Unit))
-    case Input.EOF =>
-      chunkedResponder ! Shutdown
-      Done(Unit, Input.EOF)
-  }
-
   def fold[B](folder: (Step[HttpData, Unit]) => Future[B])(implicit ec: ExecutionContext): Future[B] = {
-    folder(Step.Cont(step))
-  }
+    def waitForAck(future: Future[Any]):Iteratee[HttpData, Unit] = Iteratee.flatten(future.map(_ => this))
 
-  private def waitForAck(future: Future[Any]):Iteratee[HttpData, Unit] = new Iteratee[HttpData, Unit] {
-    def fold[B](folder: Step[HttpData, Unit] => Future[B])(implicit ec: ExecutionContext): Future[B] = {
-      val folderResult = folder(Step.Cont(step))
-      future.flatMap(_ => folderResult)
+    def step(input: Input[HttpData]):Iteratee[HttpData, Unit] = input match {
+      case Input.El(e) => waitForAck(chunkedResponder ? Chunk(e))
+      case Input.Empty => waitForAck(Future.successful(Unit))
+      case Input.EOF =>
+        chunkedResponder ! Shutdown
+        Done(Unit, Input.EOF)
     }
+
+    folder(Step.Cont(step))
   }
 }
